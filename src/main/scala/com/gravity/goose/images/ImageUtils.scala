@@ -27,6 +27,8 @@ import javax.activation.MimetypesFileTypeMap
 import javax.imageio.ImageIO
 import java.awt.color.CMMException
 import java.awt.image.BufferedImage
+import java.net.URLConnection
+import java.nio.file.{Files, Paths}
 import com.gravity.goose.utils.{URLHelper, Logging}
 import org.apache.http.client.HttpClient
 import org.apache.http.params.HttpConnectionParams
@@ -112,7 +114,22 @@ object ImageUtils extends Logging {
     try {
       val f: File = new File(filePath)
       image = ImageIO.read(f)
-      val mimeType : String = new MimetypesFileTypeMap().getContentType(f)
+
+
+      val path = Paths.get(filePath)
+      var mimeType : String = new MimetypesFileTypeMap().getContentType(f)
+      if (mimeType == "application/octet-stream") {
+        mimeType = Files.probeContentType(path)
+        if (mimeType == null) {
+          val stream = new BufferedInputStream(new FileInputStream(f))
+          mimeType = URLConnection.guessContentTypeFromStream(stream)
+          stream.close()
+        }
+      }
+      if (mimeType != null) {
+        mimeType = mimeType.split("image/").last
+      }
+
       (mimeType, image.getWidth, image.getHeight)
     }
     catch {
